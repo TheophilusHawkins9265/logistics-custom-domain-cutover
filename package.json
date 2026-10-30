@@ -1,0 +1,12 @@
+{
+  "name": "logistics-custom-domain-cutover",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo": "node --experimental-strip-types src/custom-domain-cutover.ts",
+    "test": "node --experimental-strip-types --test src/custom-domain-cutover.test.ts"
+  },
+  "dependencies": {
+    "zod": "^3.25.0"
+  }
+}
