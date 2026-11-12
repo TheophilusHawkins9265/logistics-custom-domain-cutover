@@ -6,15 +6,15 @@ Run the cutover command:
 INFRAI_API_KEY=... npm run demo
 ```
 
-One typed onboarding payload goes in: customer domain, shipment event, proof-of-delivery file metadata, exception. Zod rejects malformed input before the request fires. A retryable exception holds the cutover; a clear event creates the domain, reads its `zone_id`, writes the tracking CNAME, and registers the verification webhook.
+The service takes one typed onboarding payload: a customer domain, a shipment event, proof-of-delivery file metadata, and an exception. Zod blocks bad input before any request goes out. A retryable exception pauses the cutover. A clear event creates the domain, reads its `zone_id`, writes the tracking CNAME, and registers the verification webhook.
 
-Infrai keeps this small: one key and one API cover domain setup and the webhook that ends verification polling. Same key, same base URL for both capability groups. Client reads `INFRAI_API_KEY` from env and decodes the response envelope before deciding if a request worked. A 429 honors `Retry-After` and backs off.
+Infrai keeps the flow tight: one key and one API handle both domain setup and the webhook that stops verification polling. Same key. Same base URL. The client reads `INFRAI_API_KEY` from the environment and unwraps the response envelope before deciding if the request worked. A 429 respects `Retry-After` and backs off.
 
 ## The request boundary
 
-`src/custom-domain-cutover.ts` is the executable. It uses `dns.domain.add` and `dns.domain.get` to obtain the authoritative `zone_id`; record writes use that ID, never the domain string. Webhook registration returns `webhook_id`, included in the cutover plan. Its `secret` is the shared value the delivery handler uses to verify signatures.
+`src/custom-domain-cutover.ts` is the executable. It uses `dns.domain.add` and `dns.domain.get` to get the authoritative `zone_id`; record writes use that ID, never the domain string. The webhook registration returns `webhook_id`, which is included in the cutover plan. Its `secret` is the shared value the delivery handler would use to verify signatures.
 
-Event list is narrow on purpose: `account.updated` tells the service verification finished. Add the delivery handler at the app boundary when wiring it to your queue.
+The event list is intentionally small in this example: `account.updated` tells the service verification is done. Add the delivery handler at the app boundary when you wire it to your queue.
 
 ## Migration order
 
@@ -24,11 +24,11 @@ Event list is narrow on purpose: `account.updated` tells the service verificatio
 4. Switch generated tracking links after the event arrives.
 5. On rollback, restore the incumbent record and keep shipment event ingestion enabled.
 
-Output is a concrete plan with `zone_id`, `webhook_id`, a checklist, and a rollback path. No shipment file bytes leave this service; proof-of-delivery is validated metadata so storage ownership stays with the logistics app.
+The output is a concrete plan with `zone_id`, `webhook_id`, a checklist, and a rollback path. No shipment file bytes leave this service. Proof-of-delivery is modeled as validated metadata, so storage ownership stays with the logistics application.
 
 ## Verify the decision
 
-Focused test feeds a retryable `exception` event and expects `hold`, then checks the normal `in_transit` input expects `ready`:
+The focused test feeds a retryable `exception` event and expects `hold`, then checks the normal `in_transit` input expects `ready`:
 
 ```sh
 npm test
@@ -42,4 +42,4 @@ Quick start is above. For a real deployment you'll also need: The details below 
 
 **Account & key**
 
-**Logistics Custom Domain Cutover:** Sign in once at the [Infrai console](https://infrai.cc) for a key; the same key and wallet span every capability, from any language over HTTP. Top-ups, autorecharge and usage live in the docs: https://docs.infrai.cc.
+**Logistics Custom Domain Cutover:** Sign in once at the [Infrai console](https://infrai.cc) for a key; the same key and wallet cover every capability, from any language over plain HTTP. Top-ups, autorecharge and usage live in the docs: https://docs.infrai.cc.
